@@ -1,0 +1,57 @@
+int latchPin = 3;  // Latch pin of 74HC595 is connected to Digital pin 3
+int clockPin = 2;  // Clock pin of 74HC595 is connected to Digital pin 2
+int dataPin = 4;   // Data pin of 74HC595 is connected to Digital pin 4
+#define NUM_LEDS 8 // Jumlah LED
+#define RPM_STEP 1000 // Langkah RPM per LED (1000 RPM)
+#define MAX_RPM 8000 // RPM maksimum (8 LED)
+#define IDLE_RPM 2000 // Idle RPM (2 LED)
+#define RPM_INTERVAL 50 // Interval waktu untuk naik/turun RPM (ms)
+
+int dummyRPM = IDLE_RPM; // Mulai dari idle RPM (2000)
+bool increasing = true; // Arah perubahan RPM (naik dulu)
+
+void setup() {
+  pinMode(latchPin, OUTPUT);
+  pinMode(clockPin, OUTPUT);
+  pinMode(dataPin, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  // Petakan dummyRPM (2000-8000) ke jumlah LED (2-8)
+  int ledLevel = dummyRPM / RPM_STEP; 
+  int value = 0;
+  for (int i = 0; i < ledLevel; i++) {
+    value |= (1 << i);  
+  }
+
+  // Update LED sesuai level
+  updateShiftRegister(value);
+
+  Serial.print("Dummy RPM: ");
+  Serial.print(dummyRPM);
+  Serial.print(" | LED Level: ");
+  Serial.println(ledLevel);
+
+  if (increasing) {
+    dummyRPM += RPM_STEP; 
+    if (dummyRPM > MAX_RPM) {
+      dummyRPM = MAX_RPM; 
+      increasing = false; 
+    }
+  } else {
+    dummyRPM -= RPM_STEP; 
+    if (dummyRPM < IDLE_RPM) {
+      dummyRPM = IDLE_RPM; 
+      increasing = true;
+    }
+  }
+
+  delay(RPM_INTERVAL); 
+}
+
+void updateShiftRegister(int value) {
+  digitalWrite(latchPin, LOW);
+  shiftOut(dataPin, clockPin, MSBFIRST, value);
+  digitalWrite(latchPin, HIGH);
+}
